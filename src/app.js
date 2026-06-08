@@ -24,6 +24,9 @@ const elements = {
   gameIntro: document.querySelector("#game-intro"),
   gameStage: document.querySelector("#game-stage"),
   gameLeaderboard: document.querySelector("#game-leaderboard"),
+  gameFeedbackTitle: document.querySelector("#game-feedback-title"),
+  feedbackForms: [...document.querySelectorAll(".feedback-form")],
+  gameFeedbackForm: document.querySelector(".feedback-form[data-feedback-scope='game']"),
   backButton: document.querySelector("#back-button"),
   toastRegion: document.querySelector("#toast-region")
 };
@@ -96,6 +99,10 @@ const openGame = async slug => {
   state.activeGame = game;
   if (state.unmountGame) state.unmountGame();
   elements.gameIntro.innerHTML = `<p class="eyebrow">${game.score_direction === "lower" ? "Lowest score wins" : "Highest score wins"}</p><h2>${escapeHtml(game.title)}</h2><p>${escapeHtml(game.instructions)}</p>`;
+  elements.gameFeedbackTitle.textContent = `How was ${game.title}?`;
+  elements.gameFeedbackForm.reset();
+  elements.gameFeedbackForm.querySelector("[data-feedback-count]").textContent = "0 / 1000";
+  setFormMessage(elements.gameFeedbackForm.querySelector("[data-feedback-message]"));
   setLoading(elements.gameLeaderboard, "Loading scores");
   showPage("game");
   state.unmountGame = module.mount(elements.gameStage, {
@@ -182,6 +189,30 @@ elements.ideaForm.addEventListener("submit", async event => {
   } finally {
     button.disabled = false;
   }
+});
+
+elements.feedbackForms.forEach(form => {
+  const textarea = form.querySelector("[data-feedback-text]");
+  const count = form.querySelector("[data-feedback-count]");
+  const message = form.querySelector("[data-feedback-message]");
+  textarea.addEventListener("input", () => count.textContent = `${textarea.value.length} / 1000`);
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = form.querySelector("button[type='submit']");
+    const scope = form.dataset.feedbackScope;
+    button.disabled = true;
+    setFormMessage(message, "Sending...");
+    try {
+      await api.submitFeedback(state.token, scope, scope === "game" ? state.activeGame?.slug ?? null : null, textarea.value);
+      form.reset();
+      count.textContent = "0 / 1000";
+      setFormMessage(message, "Feedback sent. Thank you!", true);
+    } catch (error) {
+      setFormMessage(message, error.message.replace(/^.*?: /, ""));
+    } finally {
+      button.disabled = false;
+    }
+  });
 });
 
 document.addEventListener("click", event => {

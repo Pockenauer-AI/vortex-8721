@@ -102,6 +102,11 @@ input::placeholder, textarea::placeholder { color: #565b69; }
 .idea-icon { display: grid; width: 46px; height: 46px; margin-bottom: 40px; place-items: center; border-radius: 14px; background: var(--purple); font-size: 1.25rem; transform: rotate(5deg); }
 .idea-card > p:not(.eyebrow) { color: var(--muted); line-height: 1.55; }
 .idea-card form { margin-top: 25px; }
+.feedback-card { display: grid; grid-template-columns: minmax(240px, 0.75fr) minmax(320px, 1.25fr); gap: 44px; align-items: center; padding: 34px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(145deg, rgba(77, 225, 255, 0.08), rgba(17, 19, 26, 0.94) 52%, rgba(146, 93, 255, 0.1)); }
+.feedback-copy h3 { margin: 0; font-size: 2rem; letter-spacing: -0.04em; }
+.feedback-copy > p:last-child { max-width: 430px; margin: 12px 0 0; color: var(--muted); line-height: 1.6; }
+.feedback-form textarea { min-height: 120px; }
+.game-feedback-card { margin-top: 26px; }
 .textarea-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 11px; }
 .textarea-meta > span { color: var(--muted); font-family: var(--mono); font-size: 0.65rem; }
 .secondary-button { padding: 10px 14px; border-radius: 10px; background: var(--lime); color: var(--bg); font-size: 0.78rem; font-weight: 800; }
@@ -208,6 +213,7 @@ input::placeholder, textarea::placeholder { color: #565b69; }
   .hero { grid-template-columns: 1fr; gap: 40px; }
   .hero-stat { width: 180px; text-align: left; }
   .hub-columns, .game-detail-layout { grid-template-columns: 1fr; }
+  .feedback-card { grid-template-columns: 1fr; gap: 24px; }
   .idea-card { min-height: 400px; }
   .neon-touch-controls { display: grid; }
   .neon-rush-shell, .neon-rush-loading, .neon-rush-message { min-height: 560px; }
@@ -229,8 +235,9 @@ input::placeholder, textarea::placeholder { color: #565b69; }
   .leaderboard-row > :nth-child(4), .leaderboard-row.header > :nth-child(4) { display: none; }
   .reaction-game { min-height: 430px; padding: 24px 18px; }
   .reaction-actions { flex-direction: column; }
-  .game-stage:has(.neon-rush-shell) { margin-right: calc((100vw - 100%) / -2 + 14px); margin-left: calc((100vw - 100%) / -2 + 14px); border-right: 0; border-left: 0; border-radius: 0; }
-  .neon-rush-shell, .neon-rush-loading, .neon-rush-message { min-height: 600px; border-radius: 0; }
+  .feedback-card { padding: 25px 20px; }
+  .game-stage:has(.neon-rush-shell) { width: 100vw; margin-right: calc(50% - 50vw); margin-left: calc(50% - 50vw); border-right: 0; border-left: 0; border-radius: 0; }
+  .neon-rush-shell, .neon-rush-loading, .neon-rush-message { min-height: min(600px, calc(100svh - 96px)); border-radius: 0; }
   .neon-hud { top: 10px; right: 10px; left: 10px; gap: 6px; }
   .neon-hud-primary { gap: 5px; }
   .neon-hud-primary > span { min-width: 70px; min-height: 43px; padding: 7px 8px; }

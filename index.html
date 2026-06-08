@@ -115,6 +115,27 @@
             </div>
             <div id="leaderboard-preview" class="leaderboard-card"></div>
           </section>
+
+          <section class="dashboard-section">
+            <div class="feedback-card">
+              <div class="feedback-copy">
+                <p class="eyebrow">Help shape the arcade</p>
+                <h3>Share feedback</h3>
+                <p>Found something confusing, broken, or especially fun? Leave a note for the hub.</p>
+              </div>
+              <form class="feedback-form" data-feedback-scope="hub">
+                <label>
+                  Your feedback
+                  <textarea data-feedback-text minlength="5" maxlength="1000" placeholder="Tell us what you noticed..." required></textarea>
+                </label>
+                <div class="textarea-meta">
+                  <span data-feedback-count>0 / 1000</span>
+                  <button class="secondary-button" type="submit">Send feedback <span aria-hidden="true">↗</span></button>
+                </div>
+                <p class="form-message" data-feedback-message role="status"></p>
+              </form>
+            </div>
+          </section>
         </section>
 
         <section id="rankings-page" hidden>
@@ -142,6 +163,24 @@
               </div>
               <div id="game-leaderboard" class="leaderboard-card compact-table"></div>
             </aside>
+          </div>
+          <div class="feedback-card game-feedback-card">
+            <div class="feedback-copy">
+              <p class="eyebrow">Game feedback</p>
+              <h3 id="game-feedback-title">How did it play?</h3>
+              <p>Report a bug or share an idea specifically for this minigame.</p>
+            </div>
+            <form class="feedback-form" data-feedback-scope="game">
+              <label>
+                Your feedback
+                <textarea data-feedback-text minlength="5" maxlength="1000" placeholder="Tell us what happened..." required></textarea>
+              </label>
+              <div class="textarea-meta">
+                <span data-feedback-count>0 / 1000</span>
+                <button class="secondary-button" type="submit">Send feedback <span aria-hidden="true">â†—</span></button>
+              </div>
+              <p class="form-message" data-feedback-message role="status"></p>
+            </form>
           </div>
         </section>
       </div>

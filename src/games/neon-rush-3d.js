@@ -242,8 +242,9 @@ export const neonRush3d = {
       scene.background = skyTexture;
       scene.fog = new THREE.FogExp2(0x0a0a1a, 0.014);
       const camera = new THREE.PerspectiveCamera(58, canvasHost.clientWidth / canvasHost.clientHeight, 0.1, 300);
-      camera.position.set(10, 8, 15);
-      camera.lookAt(0, 1, -8);
+      const cameraComposition = { x: 10, y: 8, z: 15, targetY: 1.15, targetZ: -8 };
+      camera.position.set(cameraComposition.x, cameraComposition.y, cameraComposition.z);
+      camera.lookAt(0, cameraComposition.targetY, cameraComposition.targetZ);
       scene.add(new THREE.HemisphereLight(0x8ba6ff, 0x160820, 2.2));
       const keyLight = new THREE.DirectionalLight(0xd9ff7b, 3.4);
       keyLight.position.set(4, 10, 8);
@@ -836,9 +837,16 @@ export const neonRush3d = {
 
       const onResize = () => {
         if (!canvasHost.clientWidth || !canvasHost.clientHeight) return;
-        camera.aspect = canvasHost.clientWidth / canvasHost.clientHeight;
+        const aspect = canvasHost.clientWidth / canvasHost.clientHeight;
+        const portrait = aspect < 0.85;
+        camera.aspect = aspect;
+        camera.fov = portrait ? 70 : 58;
+        Object.assign(cameraComposition, portrait ? { x: 3.8, y: 7.2, z: 18, targetY: 0.65, targetZ: -5 } : aspect < 1.15 ? { x: 7, y: 7.6, z: 16, targetY: 0.9, targetZ: -6.5 } : { x: 10, y: 8, z: 15, targetY: 1.15, targetZ: -8 });
+        camera.position.x = cameraComposition.x;
+        camera.position.z = cameraComposition.z;
         camera.updateProjectionMatrix();
-        renderer.setSize(canvasHost.clientWidth, canvasHost.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, portrait ? 1.4 : 1.75));
+        renderer.setSize(canvasHost.clientWidth, canvasHost.clientHeight, false);
       };
 
       const update = now => {
@@ -956,8 +964,8 @@ export const neonRush3d = {
           nebula.material.opacity = 0.62 + Math.sin(now * 0.00035 + index * 2) * 0.1;
           nebula.rotation.z = Math.sin(now * 0.00008 + index) * 0.04;
         });
-        camera.position.y = 8 + Math.sin(now * 0.0007) * 0.1;
-        camera.lookAt(0, 1.15, -8);
+        camera.position.y = cameraComposition.y + Math.sin(now * 0.0007) * 0.1;
+        camera.lookAt(0, cameraComposition.targetY, cameraComposition.targetZ);
         renderer.render(scene, camera);
         if (!disposed) frameId = window.requestAnimationFrame(update);
       };
@@ -966,6 +974,10 @@ export const neonRush3d = {
       window.addEventListener("keydown", onKeyDown, { passive: false });
       document.addEventListener("visibilitychange", onVisibility);
       window.addEventListener("resize", onResize);
+      window.visualViewport?.addEventListener("resize", onResize);
+      const resizeObserver = window.ResizeObserver ? new ResizeObserver(onResize) : null;
+      resizeObserver?.observe(canvasHost);
+      onResize();
       showMenu();
       updateHud(performance.now());
       frameId = window.requestAnimationFrame(update);
@@ -976,6 +988,8 @@ export const neonRush3d = {
         window.removeEventListener("keydown", onKeyDown);
         document.removeEventListener("visibilitychange", onVisibility);
         window.removeEventListener("resize", onResize);
+        window.visualViewport?.removeEventListener("resize", onResize);
+        resizeObserver?.disconnect();
         clearEntities();
         scene.traverse(object => {
           if (object.geometry) object.geometry.dispose();

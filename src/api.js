@@ -16,5 +16,6 @@ export const api = {
   getGameLeaderboard: (slug, limit = 50) => rpc("get_game_leaderboard", { p_game_slug: slug, p_limit: limit }),
   getOverallLeaderboard: (limit = 100) => rpc("get_overall_leaderboard", { p_limit: limit }),
   submitScore: async (token, slug, score) => (await rpc("submit_score", { p_session_token: token, p_game_slug: slug, p_score: score }))[0],
-  submitIdea: async (token, idea) => (await rpc("submit_game_idea", { p_session_token: token, p_idea: idea }))[0]
+  submitIdea: async (token, idea) => (await rpc("submit_game_idea", { p_session_token: token, p_idea: idea }))[0],
+  submitFeedback: async (token, scope, gameSlug, feedback) => (await rpc("submit_feedback", { p_session_token: token, p_scope: scope, p_game_slug: gameSlug, p_feedback: feedback }))[0]
 };
