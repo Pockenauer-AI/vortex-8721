@@ -20,6 +20,8 @@ Then open `http://127.0.0.1:8000`.
 
 The browser sends completed scores through `context.submitScore(score)`. Supabase stores every valid attempt while leaderboards use only each player's best score.
 
+`Neon Rush 3D` loads Three.js from a CDN and therefore needs internet access even when the rest of the site is served locally.
+
 ## Security model
 
 The publishable Supabase key is intentionally public. Player PINs are hashed in PostgreSQL, sessions are stored as SHA-256 hashes, direct table access is denied, and all public operations pass through validated RPC functions.
