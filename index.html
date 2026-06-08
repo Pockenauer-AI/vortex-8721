@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A private arcade for friendly minigame competition.">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Minigames Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main id="app">
+    <section id="login-view" class="login-view">
+      <div class="login-card">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="eyebrow">Friends-only arcade</p>
+        <h1>Minigames<br><span>Hub</span></h1>
+        <p class="login-copy">Pick a name, set your PIN, and chase the top of the leaderboard.</p>
+
+        <form id="login-form" class="login-form">
+          <label>
+            Player name
+            <input id="player-name" name="name" type="text" minlength="2" maxlength="20" autocomplete="username" placeholder="e.g. PixelPilot" required>
+          </label>
+          <label>
+            PIN
+            <input id="player-pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,12}" minlength="4" maxlength="12" autocomplete="current-password" placeholder="4-12 digits" required>
+          </label>
+          <button class="primary-button full-width" type="submit">
+            <span>Enter the hub</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <p id="login-message" class="form-message" role="alert"></p>
+        </form>
+
+        <p class="login-note">New name? Your player is created automatically.</p>
+      </div>
+    </section>
+
+    <section id="hub-view" class="hub-view" hidden>
+      <header class="topbar">
+        <a class="brand" href="#" data-route="hub" aria-label="Minigames Hub home">
+          <span class="brand-icon">M</span>
+          <span>MINIGAMES<span class="brand-accent">/HUB</span></span>
+        </a>
+        <nav class="topnav" aria-label="Main navigation">
+          <button class="nav-button active" type="button" data-route="hub">Arcade</button>
+          <button class="nav-button" type="button" data-route="rankings">Rankings</button>
+        </nav>
+        <div class="player-menu">
+          <span id="player-badge" class="player-badge"></span>
+          <button id="logout-button" class="icon-button" type="button" aria-label="Log out" title="Log out">↗</button>
+        </div>
+      </header>
+
+      <div id="page-content" class="page-content">
+        <section id="hub-page">
+          <div class="hero">
+            <div>
+              <p class="eyebrow">The arcade is open</p>
+              <h2>Play small.<br><span>Win big.</span></h2>
+              <p>Jump into a quick challenge, set a high score, and claim your place among friends.</p>
+            </div>
+            <div class="hero-stat">
+              <span id="hero-rank">#—</span>
+              <p>Your current rank</p>
+            </div>
+          </div>
+
+          <section class="dashboard-section">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Choose your challenge</p>
+                <h3>Minigames</h3>
+              </div>
+              <span id="game-count" class="count-pill">0 games</span>
+            </div>
+
+            <div class="hub-columns">
+              <div id="games-grid" class="games-grid" aria-live="polite"></div>
+
+              <aside class="idea-card">
+                <div class="idea-icon" aria-hidden="true">✦</div>
+                <p class="eyebrow">Got a great idea?</p>
+                <h3>Pitch the next game</h3>
+                <p>Tell us what should land in the arcade next.</p>
+                <form id="idea-form">
+                  <label class="sr-only" for="idea-text">Your game idea</label>
+                  <textarea id="idea-text" minlength="5" maxlength="500" placeholder="A game where you..." required></textarea>
+                  <div class="textarea-meta">
+                    <span id="idea-count">0 / 500</span>
+                    <button class="secondary-button" type="submit">Send idea <span aria-hidden="true">↗</span></button>
+                  </div>
+                  <p id="idea-message" class="form-message" role="status"></p>
+                </form>
+              </aside>
+            </div>
+          </section>
+
+          <section class="dashboard-section leaderboard-preview">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Hall of fame</p>
+                <h3>Top players</h3>
+              </div>
+              <button class="text-button" type="button" data-route="rankings">Full rankings →</button>
+            </div>
+            <div id="leaderboard-preview" class="leaderboard-card"></div>
+          </section>
+        </section>
+
+        <section id="rankings-page" hidden>
+          <div class="page-title">
+            <p class="eyebrow">Hall of fame</p>
+            <h2>Overall rankings</h2>
+            <p>Game wins lead the board. Average placement breaks the tie.</p>
+          </div>
+          <div id="overall-leaderboard" class="leaderboard-card"></div>
+        </section>
+
+        <section id="game-page" hidden>
+          <button id="back-button" class="back-button" type="button">← Back to arcade</button>
+          <div class="game-detail-layout">
+            <div>
+              <div id="game-intro" class="game-intro"></div>
+              <div id="game-stage" class="game-stage"></div>
+            </div>
+            <aside>
+              <div class="section-heading compact">
+                <div>
+                  <p class="eyebrow">Best reactions</p>
+                  <h3>Leaderboard</h3>
+                </div>
+              </div>
+              <div id="game-leaderboard" class="leaderboard-card compact-table"></div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
