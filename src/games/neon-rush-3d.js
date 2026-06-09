@@ -1,10 +1,10 @@
+import { BASE_SPEED, CHUNK_LENGTH, diamondDistanceForChunk, hasDiamondForChunk, speedForDistance } from "./neon-rush-economy.js";
+
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
 const LANES = [-3, 0, 3];
 const COURSE_SEED = 0x4e525633;
 const PLAYER_DISTANCE = 8;
-const BASE_SPEED = 10;
 const MAX_SPEED = 40;
-const CHUNK_LENGTH = 22;
 const LOOK_AHEAD = 190;
 const SAFE_LANE_SEQUENCE = [1, 0, 1, 2, 1, 1, 0, 1, 2, 1];
 
@@ -16,9 +16,7 @@ const hash = value => {
 };
 
 const randomFor = (chunk, salt = 0) => hash(chunk * 41 + salt * 131) / 4294967296;
-const speedForDistance = distance => Math.min(MAX_SPEED, BASE_SPEED + 12 * (1 - Math.exp(-distance / 170)) + 18 * (1 - Math.exp(-distance / 1700)));
-
-export const generateNeonRushChunk = chunk => {
+export const generateNeonRushChunk = (chunk, runSeed = null) => {
   const start = 30 + chunk * CHUNK_LENGTH;
   const reachableSafeLane = SAFE_LANE_SEQUENCE[chunk % SAFE_LANE_SEQUENCE.length];
   const difficulty = Math.min(1, chunk / 35);
@@ -61,10 +59,11 @@ export const generateNeonRushChunk = chunk => {
     }
   }
 
+  if (runSeed !== null && hasDiamondForChunk(chunk, runSeed)) entities.push({ kind: "diamond", chunk, lane: reachableSafeLane, distance: diamondDistanceForChunk(chunk) });
   return { chunk, safeLane: reachableSafeLane, entities };
 };
 
-export const generateNeonRushCourse = count => Array.from({ length: count }, (_, chunk) => generateNeonRushChunk(chunk));
+export const generateNeonRushCourse = (count, runSeed = null) => Array.from({ length: count }, (_, chunk) => generateNeonRushChunk(chunk, runSeed));
 
 const formatScore = score => `${Math.round(Number(score)).toLocaleString()} m`;
 
@@ -191,7 +190,7 @@ export const neonRush3d = {
       shell.innerHTML = `<div class="neon-rush-game">
         <div class="neon-rush-canvas"></div>
         <div class="neon-hud">
-          <div class="neon-hud-primary"><span>Distance<strong data-neon-distance>0 m</strong></span><span>Speed<strong data-neon-speed>1.0x</strong></span></div>
+          <div class="neon-hud-primary"><span>Distance<strong data-neon-distance>0 m</strong></span><span>Speed<strong data-neon-speed>1.0x</strong></span><span>Diamonds<strong data-neon-diamonds>0</strong></span></div>
           <div class="neon-items"><span data-neon-revive>Revive <b>0</b></span><span data-neon-shield>Shield <b>0</b></span><span data-neon-slow>Slow <b>--</b></span></div>
           <button class="neon-icon-button" type="button" data-neon-action="mute" aria-label="Mute sound">SOUND</button>
           <button class="neon-icon-button" type="button" data-neon-action="pause" aria-label="Pause game">PAUSE</button>
@@ -210,6 +209,7 @@ export const neonRush3d = {
       const overlay = shell.querySelector(".neon-overlay");
       const distanceNode = shell.querySelector("[data-neon-distance]");
       const speedNode = shell.querySelector("[data-neon-speed]");
+      const diamondsNode = shell.querySelector("[data-neon-diamonds]");
       const reviveNode = shell.querySelector("[data-neon-revive]");
       const shieldNode = shell.querySelector("[data-neon-shield]");
       const slowNode = shell.querySelector("[data-neon-slow]");
@@ -274,7 +274,8 @@ export const neonRush3d = {
         slow: new THREE.MeshStandardMaterial({ color: 0x4de1ff, emissive: 0x07566a, roughness: 0.2 }),
         shield: new THREE.MeshStandardMaterial({ color: 0x79ffaf, emissive: 0x075a2a, roughness: 0.2 }),
         dark: new THREE.MeshStandardMaterial({ color: 0x241833, emissive: 0x12081f, roughness: 0.25, metalness: 0.65 }),
-        reverse: new THREE.MeshStandardMaterial({ color: 0xff8a3d, emissive: 0x7f2700, roughness: 0.25 })
+        reverse: new THREE.MeshStandardMaterial({ color: 0xff8a3d, emissive: 0x7f2700, roughness: 0.25 }),
+        diamond: new THREE.MeshStandardMaterial({ color: 0x84f4ff, emissive: 0x126d95, roughness: 0.14, metalness: 0.72 })
       };
 
       const groundSegments = Array.from({ length: 10 }, (_, index) => {
@@ -447,6 +448,20 @@ export const neonRush3d = {
         cubeVisual.add(cube);
         return cube;
       });
+      const cubePalettes = {
+        standard: { body: 0xc7ff48, emissive: 0x304000, edge: 0xf3ffbd, light: 0xc7ff48, trail: [0xc7ff48, 0x4de1ff] },
+        purple: { body: 0x925dff, emissive: 0x2d126d, edge: 0xe1d4ff, light: 0xb88cff, trail: [0x925dff, 0xff4fcb] }
+      };
+      let cubePalette = cubePalettes.standard;
+      const applyCubeColor = color => {
+        cubePalette = cubePalettes[color] ?? cubePalettes.standard;
+        playerBody.material.color.setHex(cubePalette.body);
+        playerBody.material.emissive.setHex(cubePalette.emissive);
+        playerEdges.material.color.setHex(cubePalette.edge);
+        playerLight.color.setHex(cubePalette.light);
+        trail.forEach((cube, index) => cube.material.color.setHex(cubePalette.trail[index % cubePalette.trail.length]));
+      };
+      applyCubeColor(context.economy?.equipped_cube_color);
       player.add(cubeVisual);
       player.position.set(0, 0.72, PLAYER_DISTANCE);
       scene.add(player);
@@ -473,7 +488,16 @@ export const neonRush3d = {
         countdownEnd: 0,
         countdownLabel: "Get ready",
         pausedFrom: null,
-        submitting: false
+        submitting: false,
+        starting: false,
+        runId: null,
+        runSeed: null,
+        speedBoost: false,
+        speedBoostQuantity: Number(context.economy?.speed_boost_quantity ?? 0),
+        useSpeedBoost: false,
+        runDiamonds: 0,
+        cubeColor: context.economy?.equipped_cube_color ?? "standard",
+        pendingClaims: new Set()
       };
       game = state;
 
@@ -605,6 +629,15 @@ export const neonRush3d = {
           ring.rotation.x = Math.PI / 2;
           mesh.add(orb, ring, createLabelSprite("JUMP ORB", "#ffeb5a"));
           mesh.position.y = 2.35;
+        } else if (entity.kind === "diamond") {
+          mesh = new THREE.Group();
+          const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.62, 0), materials.diamond);
+          gem.scale.y = 1.3;
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.88, 0.055, 8, 30), new THREE.MeshBasicMaterial({ color: 0xd8ffff, transparent: true, opacity: 0.78 }));
+          ring.rotation.x = Math.PI / 2;
+          const glow = new THREE.PointLight(0x4de1ff, 8, 8, 2);
+          mesh.add(gem, ring, glow, createLabelSprite("DIAMOND", "#4de1ff"));
+          mesh.position.y = 1.75;
         } else {
           mesh = createItemMesh(entity.item);
           mesh.position.y = 1.5;
@@ -628,7 +661,7 @@ export const neonRush3d = {
 
       const spawnAhead = () => {
         while (30 + state.nextChunk * CHUNK_LENGTH < state.distance + LOOK_AHEAD) {
-          const chunk = generateNeonRushChunk(state.nextChunk++);
+          const chunk = generateNeonRushChunk(state.nextChunk++, state.runSeed);
           chunk.entities.forEach(entity => {
             const instance = { ...entity, hit: false, collected: false };
             createEntityMesh(instance);
@@ -638,10 +671,11 @@ export const neonRush3d = {
       };
 
       const updateHud = now => {
-        const baseSpeed = speedForDistance(state.distance);
+        const baseSpeed = speedForDistance(state.distance, state.speedBoost);
         const speed = now < state.slowUntil ? baseSpeed * 0.58 : baseSpeed;
         distanceNode.textContent = `${Math.floor(state.distance).toLocaleString()} m`;
         speedNode.textContent = `${(speed / BASE_SPEED).toFixed(1)}x`;
+        diamondsNode.textContent = state.runDiamonds.toLocaleString();
         reviveNode.classList.toggle("active", state.revive);
         reviveNode.querySelector("b").textContent = state.revive ? "1" : "0";
         shieldNode.classList.toggle("active", state.shield);
@@ -655,10 +689,12 @@ export const neonRush3d = {
         darknessNode.classList.toggle("active", now < state.darkUntil);
       };
 
-      const showMenu = () => {
+      const showMenu = (errorMessage = "") => {
         state.phase = "menu";
+        if (state.speedBoostQuantity < 1) state.useSpeedBoost = false;
         overlay.className = "neon-overlay visible";
-        overlay.innerHTML = `<div class="neon-panel"><p class="eyebrow">Fixed course v3</p><h3>Run the neon grid</h3><p>Switch lanes, jump hazards, and hit yellow Jump Orbs in mid-air for a powerful second jump over tall walls. Blackout and reversed-control pickups now appear more often as the course accelerates toward 4x speed.</p><div class="neon-key-guide"><span>A / LEFT<small>Move left</small></span><span>SPACE / UP<small>Jump / orb jump</small></span><span>D / RIGHT<small>Move right</small></span></div><button class="primary-button" type="button" data-neon-action="start">Start run</button></div>`;
+        overlay.innerHTML = `<div class="neon-panel"><p class="eyebrow">Fixed course v3</p><h3>Run the neon grid</h3><p>Switch lanes, jump hazards, and collect very rare diamonds after 2,500 meters. Diamonds can be spent in the hub shop.</p><div class="neon-key-guide"><span>A / LEFT<small>Move left</small></span><span>SPACE / UP<small>Jump / orb jump</small></span><span>D / RIGHT<small>Move right</small></span></div><button class="neon-boost-toggle ${state.useSpeedBoost ? "active" : ""}" type="button" data-neon-action="toggle-boost" ${state.speedBoostQuantity < 1 ? "disabled" : ""}><span>2x Speed Start</span><strong>${state.speedBoostQuantity} owned</strong></button>${errorMessage ? `<p class="neon-menu-error" data-neon-menu-error></p>` : ""}<button class="primary-button" type="button" data-neon-action="start">Start run</button></div>`;
+        if (errorMessage) overlay.querySelector("[data-neon-menu-error]").textContent = errorMessage;
       };
 
       const showCountdown = label => {
@@ -671,10 +707,33 @@ export const neonRush3d = {
         startMusic();
       };
 
-      const startCountdown = () => {
+      const startCountdown = async () => {
+        if (state.starting) return;
+        state.starting = true;
+        state.phase = "starting";
+        const startButton = overlay.querySelector("[data-neon-action='start']");
+        if (startButton) {
+          startButton.disabled = true;
+          startButton.textContent = "Preparing run...";
+        }
+        try {
+          const run = await context.beginNeonRun(state.useSpeedBoost);
+          if (disposed) {
+            context.endNeonRun(run.run_id).catch(() => {});
+            return;
+          }
+          Object.assign(state, { runId: run.run_id, runSeed: Number(run.run_seed), speedBoost: Boolean(run.speed_boost), speedBoostQuantity: Number(run.speed_boost_quantity), cubeColor: run.cube_color, runDiamonds: 0 });
+          context.onEconomyChanged({ diamonds: run.diamonds, speed_boost_quantity: run.speed_boost_quantity, cube_color: run.cube_color });
+          applyCubeColor(state.cubeColor);
+        } catch (error) {
+          if (!disposed) showMenu(error.message);
+          return;
+        } finally {
+          state.starting = false;
+        }
         ensureAudio();
         clearEntities();
-        Object.assign(state, { distance: 0, lane: 1, targetLane: 1, playerY: 0.72, velocityY: 0, grounded: true, revive: false, shield: false, slowUntil: 0, darkUntil: 0, reverseUntil: 0, invulnerableUntil: 0, nextChunk: 0, submitting: false });
+        Object.assign(state, { distance: 0, lane: 1, targetLane: 1, playerY: 0.72, velocityY: 0, grounded: true, revive: false, shield: false, slowUntil: 0, darkUntil: 0, reverseUntil: 0, invulnerableUntil: 0, nextChunk: 0, submitting: false, useSpeedBoost: false });
         player.position.set(0, 0.72, PLAYER_DISTANCE);
         player.rotation.set(0, 0, 0);
         startGate.visible = true;
@@ -742,6 +801,33 @@ export const neonRush3d = {
         flash("pickup-flash");
       };
 
+      const collectDiamond = entity => {
+        entity.collected = true;
+        entity.mesh.visible = false;
+        const claim = (async () => {
+          let lastError;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              const result = await context.claimNeonDiamond(state.runId, entity.chunk);
+              if (result.awarded) {
+                state.runDiamonds++;
+                context.onEconomyChanged({ diamonds: result.diamonds });
+                sound(880, 0.2, "triangle", 0.06, 1760);
+                window.setTimeout(() => sound(1320, 0.16, "sine", 0.04, 2100), 75);
+                flash("diamond-flash");
+              }
+              return;
+            } catch (error) {
+              lastError = error;
+              if (attempt < 2) await new Promise(resolve => window.setTimeout(resolve, 500 * (attempt + 1)));
+            }
+          }
+          context.onDiamondError(lastError);
+        })();
+        state.pendingClaims.add(claim);
+        claim.finally(() => state.pendingClaims.delete(claim));
+      };
+
       const findSafeLane = () => {
         const dangerousKinds = new Set(["spike", "wall", "beam"]);
         const dangerByLane = LANES.map((_, lane) => state.entities.some(entity => !entity.hit && dangerousKinds.has(entity.kind) && entity.lane === lane && entity.distance > state.distance - 2 && entity.distance < state.distance + 10));
@@ -799,12 +885,26 @@ export const neonRush3d = {
           const saveNode = overlay.querySelector("[data-neon-save]");
           if (saveNode) saveNode.textContent = `Score not saved: ${error.message}`;
         } finally {
+          await Promise.allSettled([...state.pendingClaims]);
+          if (state.runId) {
+            try {
+              await context.endNeonRun(state.runId);
+            } catch {
+              // The score remains valid even if closing the run fails.
+            }
+          }
+          state.runId = null;
           state.submitting = false;
         }
       };
 
       const handleAction = action => {
-        if (action === "start" || action === "restart") startCountdown();
+        if (action === "start") startCountdown();
+        if (action === "restart") showMenu();
+        if (action === "toggle-boost" && state.speedBoostQuantity > 0) {
+          state.useSpeedBoost = !state.useSpeedBoost;
+          showMenu();
+        }
         if (action === "resume") resume();
         if (action === "pause") state.phase === "paused" ? resume() : pause(false);
         if (action === "mute") {
@@ -867,7 +967,7 @@ export const neonRush3d = {
         }
 
         if (state.phase === "running") {
-          const baseSpeed = speedForDistance(state.distance);
+          const baseSpeed = speedForDistance(state.distance, state.speedBoost);
           const currentSpeed = now < state.slowUntil ? baseSpeed * 0.58 : baseSpeed;
           visualSpeed = currentSpeed;
           state.distance += currentSpeed * rawDelta;
@@ -899,8 +999,8 @@ export const neonRush3d = {
           player.rotation.y += (0 - player.rotation.y) * Math.min(1, rawDelta * 8);
           player.rotation.z += ((state.targetLane - state.lane) * -0.2 - player.rotation.z) * Math.min(1, rawDelta * 10);
           const invulnerable = now < state.invulnerableUntil;
-          playerBody.material.emissive.setHex(invulnerable ? 0x7a5b00 : 0x304000);
-          playerEdges.material.color.setHex(invulnerable ? 0xffdf5e : 0xf3ffbd);
+          playerBody.material.emissive.setHex(invulnerable ? 0x7a5b00 : cubePalette.emissive);
+          playerEdges.material.color.setHex(invulnerable ? 0xffdf5e : cubePalette.edge);
           const playerPulse = invulnerable ? 1 + Math.sin(now * 0.02) * 0.045 : 1;
           cubeVisual.scale.setScalar(playerPulse);
 
@@ -912,6 +1012,11 @@ export const neonRush3d = {
               entity.mesh.rotation.y += rawDelta * 2.5;
               entity.mesh.position.y = 1.5 + Math.sin(now * 0.004 + entity.distance) * 0.18;
               if (Math.abs(relative) < 1.25 && Math.abs(player.position.x - LANES[entity.lane]) < 1.05) collect(entity, now);
+            } else if (entity.kind === "diamond" && !entity.collected) {
+              entity.mesh.rotation.y += rawDelta * 3.8;
+              entity.mesh.rotation.z = Math.sin(now * 0.003 + entity.distance) * 0.18;
+              entity.mesh.position.y = 1.75 + Math.sin(now * 0.005 + entity.distance) * 0.2;
+              if (Math.abs(relative) < 1.25 && Math.abs(player.position.x - LANES[entity.lane]) < 1.05) collectDiamond(entity);
             } else if (entity.kind === "jump-orb" && !entity.activated) {
               entity.mesh.rotation.y += rawDelta * 3.2;
               entity.mesh.position.y = 2.35 + Math.sin(now * 0.005 + entity.distance) * 0.15;
@@ -1014,6 +1119,9 @@ export const neonRush3d = {
 
     return () => {
       disposed = true;
+      const unfinishedRunId = game?.runId;
+      const pendingClaims = [...(game?.pendingClaims ?? [])];
+      if (unfinishedRunId) Promise.allSettled(pendingClaims).then(() => context.endNeonRun(unfinishedRunId)).catch(() => {});
       window.cancelAnimationFrame(frameId);
       shell.removeEventListener("click", reloadHandler);
       cleanupThree();

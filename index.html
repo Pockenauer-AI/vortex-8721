@@ -53,9 +53,11 @@
         </a>
         <nav class="topnav" aria-label="Main navigation">
           <button class="nav-button active" type="button" data-route="hub">Arcade</button>
+          <button class="nav-button" type="button" data-route="shop">Shop</button>
           <button class="nav-button" type="button" data-route="rankings">Rankings</button>
         </nav>
         <div class="player-menu">
+          <span class="diamond-balance" aria-label="Diamond balance"><span class="diamond-icon" aria-hidden="true"></span><strong id="diamond-balance">0</strong></span>
           <span id="player-badge" class="player-badge"></span>
           <button id="logout-button" class="icon-button" type="button" aria-label="Log out" title="Log out">↗</button>
         </div>
@@ -138,6 +140,22 @@
           </section>
         </section>
 
+        <section id="shop-page" hidden>
+          <div class="shop-hero">
+            <div class="page-title">
+              <p class="eyebrow">Spend what you find</p>
+              <h2>Diamond shop</h2>
+              <p>Collect rare diamonds deep inside Neon Rush and trade them for helper items and permanent cosmetics.</p>
+            </div>
+            <div class="shop-wallet">
+              <span class="diamond-icon large" aria-hidden="true"></span>
+              <strong id="shop-diamond-balance">0</strong>
+              <small>Diamonds available</small>
+            </div>
+          </div>
+          <div id="shop-content" aria-live="polite"></div>
+        </section>
+
         <section id="rankings-page" hidden>
           <div class="page-title">
             <p class="eyebrow">Hall of fame</p>
@@ -157,7 +175,7 @@
             <aside>
               <div class="section-heading compact">
                 <div>
-                  <p class="eyebrow">Best reactions</p>
+                  <p class="eyebrow">Best scores</p>
                   <h3>Leaderboard</h3>
                 </div>
               </div>

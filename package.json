@@ -1,0 +1,9 @@
+{
+  "name": "minigames-hub",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "test": "node --test tests/neon-rush-economy.test.js tests/minesweeper-3d.test.js"
+  }
+}
