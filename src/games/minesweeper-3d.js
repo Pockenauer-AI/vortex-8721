@@ -26,19 +26,20 @@ export const minesweeper3d = {
         <div class="minesweeper-hud">
           <span>Time<strong data-mine-time>0.000 s</strong></span>
           <span>Mines<strong data-mine-count>${DEFAULT_MINE_COUNT}</strong></span>
-          <span>Layer<strong data-mine-layer>3 / 5</strong></span>
+          <span>Layer<strong data-mine-layer>Depth 3 / 5</strong></span>
           <button type="button" data-mine-action="reset">RESET</button>
         </div>
         <div class="minesweeper-layer-controls">
           <button type="button" data-mine-action="layer-prev" aria-label="Previous layer">Q -</button>
-          <span data-mine-layer-name>Layer 3</span>
+          <span data-mine-layer-name>Depth 3</span>
           <button type="button" data-mine-action="layer-next" aria-label="Next layer">+ E</button>
+          <button class="axis" type="button" data-mine-action="axis-toggle" aria-label="Rotate layer direction">R / SIDE</button>
         </div>
         <div class="minesweeper-mode-controls" aria-label="Touch action">
           <button class="active" type="button" data-mine-mode="reveal">REVEAL</button>
           <button type="button" data-mine-mode="flag">FLAG</button>
         </div>
-        <div class="minesweeper-help">Drag to rotate / Wheel or Q/E changes layer / Right-click flags</div>
+        <div class="minesweeper-help">Drag to rotate / Wheel or Q/E changes layer / R rotates the layer direction / Right-click flags</div>
         <div class="minesweeper-overlay visible"></div>
       </div>`;
 
@@ -90,6 +91,7 @@ export const minesweeper3d = {
       const generatedTextures = [];
       let board = createBoard();
       let activeLayer = 2;
+      let layerAxis = "z";
       let phase = "menu";
       let touchMode = "reveal";
       let startedAt = 0;
@@ -129,9 +131,9 @@ export const minesweeper3d = {
           visual.label.material.map.dispose();
           visual.label.material.dispose();
         }
-        const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: createLabelTexture(text, color), transparent: true, depthTest: false }));
-        label.scale.set(0.62, 0.62, 0.62);
-        label.position.z = 0.48;
+        const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: createLabelTexture(text, color), transparent: true, depthTest: true, depthWrite: false }));
+        label.scale.set(0.54, 0.54, 0.54);
+        label.position.set(0, 0, 0);
         label.renderOrder = 4;
         label.userData.key = key;
         visual.root.add(label);
@@ -143,14 +145,14 @@ export const minesweeper3d = {
         const { x, y, z } = coordinatesFor(cell.index);
         const root = new THREE.Group();
         root.position.set((x - 2) * CELL_GAP, (2 - y) * CELL_GAP, (z - 2) * CELL_GAP);
-        const material = new THREE.MeshStandardMaterial({ color: 0x232a3b, emissive: 0x07111d, roughness: 0.34, metalness: 0.55, transparent: true });
+        const material = new THREE.MeshStandardMaterial({ color: 0x232a3b, emissive: 0x07111d, roughness: 0.34, metalness: 0.55, transparent: true, depthWrite: false });
         const mesh = new THREE.Mesh(cellGeometry, material);
         mesh.userData.index = cell.index;
         const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x4de1ff, transparent: true });
         const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
         root.add(mesh, edges);
         boardGroup.add(root);
-        visuals.push({ root, mesh, edges, label: null, baseZ: root.position.z });
+        visuals.push({ root, mesh, edges, label: null, baseX: root.position.x, baseZ: root.position.z });
       });
 
       const clearLabels = () => visuals.forEach(visual => {
@@ -162,8 +164,11 @@ export const minesweeper3d = {
       });
 
       const updateLayerUi = () => {
-        layerNode.textContent = `${activeLayer + 1} / ${DEFAULT_SIZE}`;
-        layerNameNode.textContent = `Layer ${activeLayer + 1}`;
+        const axisName = layerAxis === "z" ? "Depth" : "Side";
+        layerNode.textContent = `${axisName} ${activeLayer + 1} / ${DEFAULT_SIZE}`;
+        layerNameNode.textContent = `${axisName} ${activeLayer + 1}`;
+        const axisButton = shell.querySelector("[data-mine-action='axis-toggle']");
+        if (axisButton) axisButton.textContent = layerAxis === "z" ? "R / SIDE" : "R / DEPTH";
       };
 
       const updateVisuals = () => {
@@ -171,14 +176,14 @@ export const minesweeper3d = {
         mineCountNode.textContent = String(Math.max(0, DEFAULT_MINE_COUNT - flags));
         visuals.forEach((visual, index) => {
           const cell = board.cells[index];
-          const { z } = coordinatesFor(index);
-          const active = z === activeLayer;
+          const coordinates = coordinatesFor(index);
+          const active = coordinates[layerAxis] === activeLayer;
           const wrongFlag = ["lost", "won"].includes(phase) && cell.flagged && !cell.mine;
           let color = 0x20283a;
           let emissive = 0x07111d;
           if (cell.revealed && !cell.mine) {
-            color = 0x10151f;
-            emissive = 0x05070d;
+            color = cell.adjacent ? 0x111923 : 0x071820;
+            emissive = cell.adjacent ? 0x05070d : 0x06303b;
           }
           if (cell.flagged) {
             color = wrongFlag ? 0xff5f78 : 0xffc857;
@@ -190,11 +195,12 @@ export const minesweeper3d = {
           }
           visual.mesh.material.color.setHex(color);
           visual.mesh.material.emissive.setHex(emissive);
-          visual.mesh.material.opacity = active ? cell.revealed && !cell.mine ? 0.34 : 0.92 : cell.revealed ? 0.035 : 0.1;
+          visual.mesh.material.opacity = active ? cell.revealed && !cell.mine ? cell.adjacent ? 0.3 : 0.52 : 0.92 : cell.revealed ? 0.06 : 0.145;
           visual.edges.material.color.setHex(active ? cell.flagged ? 0xffd36b : cell.exploded ? 0xff5f78 : 0x4de1ff : 0x433967);
-          visual.edges.material.opacity = active ? 0.8 : 0.11;
+          visual.edges.material.opacity = active ? cell.revealed && !cell.adjacent ? 0.48 : 0.8 : 0.16;
           visual.root.scale.setScalar(active ? 1 : 0.9);
-          visual.root.position.z = visual.baseZ + (active ? 0.08 : 0);
+          visual.root.position.x = visual.baseX + (active && layerAxis === "x" ? 0.08 : 0);
+          visual.root.position.z = visual.baseZ + (active && layerAxis === "z" ? 0.08 : 0);
           if (cell.revealed && !cell.mine && cell.adjacent) ensureLabel(visual, String(cell.adjacent), NUMBER_COLORS[Math.min(cell.adjacent, NUMBER_COLORS.length) - 1]);
           else if (cell.flagged) ensureLabel(visual, wrongFlag ? "X" : "!", wrongFlag ? "#ff5f78" : "#ffcc5c");
           else if (cell.mine && cell.revealed) ensureLabel(visual, "X", cell.exploded ? "#ff5f78" : "#d87a9a");
@@ -205,6 +211,12 @@ export const minesweeper3d = {
 
       const setLayer = nextLayer => {
         activeLayer = Math.max(0, Math.min(DEFAULT_SIZE - 1, nextLayer));
+        updateLayerUi();
+        updateVisuals();
+      };
+
+      const toggleLayerAxis = () => {
+        layerAxis = layerAxis === "z" ? "x" : "z";
         updateLayerUi();
         updateVisuals();
       };
@@ -223,6 +235,7 @@ export const minesweeper3d = {
         submitting = false;
         timeNode.textContent = formatMinesweeperTime(0);
         clearLabels();
+        layerAxis = "z";
         setLayer(2);
         overlay.className = "minesweeper-overlay";
         overlay.innerHTML = "";
@@ -285,7 +298,7 @@ export const minesweeper3d = {
         pointer.x = (event.clientX - bounds.left) / bounds.width * 2 - 1;
         pointer.y = -(event.clientY - bounds.top) / bounds.height * 2 + 1;
         raycaster.setFromCamera(pointer, camera);
-        const activeMeshes = visuals.filter((_, index) => coordinatesFor(index).z === activeLayer).map(visual => visual.mesh);
+        const activeMeshes = visuals.filter((_, index) => coordinatesFor(index)[layerAxis] === activeLayer).map(visual => visual.mesh);
         return raycaster.intersectObjects(activeMeshes, false)[0]?.object.userData.index;
       };
 
@@ -335,6 +348,7 @@ export const minesweeper3d = {
         if (action === "start" || action === "restart" || action === "reset") reset();
         if (action === "layer-prev") setLayer(activeLayer - 1);
         if (action === "layer-next") setLayer(activeLayer + 1);
+        if (action === "axis-toggle") toggleLayerAxis();
       };
 
       const onClick = event => {
@@ -348,9 +362,10 @@ export const minesweeper3d = {
       };
 
       const onKeyDown = event => {
-        if (!["KeyQ", "KeyE"].includes(event.code) || event.repeat) return;
+        if (!["KeyQ", "KeyE", "KeyR"].includes(event.code) || event.repeat) return;
         event.preventDefault();
-        setLayer(activeLayer + (event.code === "KeyQ" ? -1 : 1));
+        if (event.code === "KeyR") toggleLayerAxis();
+        else setLayer(activeLayer + (event.code === "KeyQ" ? -1 : 1));
       };
 
       const onResize = () => {

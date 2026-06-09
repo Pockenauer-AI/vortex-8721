@@ -254,6 +254,7 @@ input::placeholder, textarea::placeholder { color: #565b69; }
 .minesweeper-layer-controls button, .minesweeper-mode-controls button { cursor: pointer; }
 .minesweeper-layer-controls button:hover { border-color: rgba(77, 225, 255, 0.5); color: var(--cyan); }
 .minesweeper-layer-controls span { display: grid; place-items: center; color: var(--lime); }
+.minesweeper-layer-controls .axis { color: var(--cyan); }
 .minesweeper-mode-controls { position: absolute; z-index: 4; right: 16px; bottom: 16px; display: flex; gap: 7px; }
 .minesweeper-mode-controls button { min-width: 82px; padding: 0 12px; }
 .minesweeper-mode-controls button.active { border-color: rgba(199, 255, 72, 0.56); background: rgba(199, 255, 72, 0.13); color: var(--lime); }
@@ -334,6 +335,7 @@ input::placeholder, textarea::placeholder { color: #565b69; }
   .minesweeper-hud > button { position: absolute; top: 49px; right: 0; width: 58px; min-height: 35px; margin-left: 0; padding: 5px; font-size: 0.47rem; }
   .minesweeper-layer-controls { top: auto; right: 10px; bottom: 69px; left: 10px; display: grid; width: auto; grid-template-columns: 1fr 1.2fr 1fr; transform: none; }
   .minesweeper-layer-controls button, .minesweeper-layer-controls span { min-height: 43px; }
+  .minesweeper-layer-controls .axis { position: absolute; right: 0; bottom: 50px; width: 88px; min-height: 36px; }
   .minesweeper-mode-controls { right: 10px; bottom: 12px; left: 10px; }
   .minesweeper-mode-controls button { flex: 1; min-height: 46px; }
   .minesweeper-help { display: none; }
